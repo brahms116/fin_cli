@@ -3,12 +3,6 @@ use futures::stream::{FuturesUnordered, Stream, TryStreamExt};
 use super::*;
 use sea_orm::{DatabaseConnection, Set};
 
-impl From<DbErr> for StringErr {
-    fn from(e: DbErr) -> Self {
-        StringErr::new(format!("{:?}", e))
-    }
-}
-
 pub struct Repository {
     db: DatabaseConnection,
 }
