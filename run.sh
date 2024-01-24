@@ -4,4 +4,4 @@ set -a
 . ./.env
 set +a
 
-cargo run
+cargo run -p fin_cli -- $@
