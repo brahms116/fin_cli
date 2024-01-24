@@ -1,12 +1,4 @@
 use super::*;
-use crate::repository::{Repository, TransactionUpdate};
-use futures::{StreamExt, TryStream, TryStreamExt};
-use regex::{Error as RegexError, Regex};
-
-use sea_orm::Database;
-pub struct Classifier {
-    repo: Repository,
-}
 
 impl From<RegexError> for StringErr {
     fn from(e: RegexError) -> Self {
@@ -14,13 +6,7 @@ impl From<RegexError> for StringErr {
     }
 }
 
-impl Classifier {
-    pub async fn new(database_url: &str) -> Result<Self, StringErr> {
-        Ok(Database::connect(database_url).await.map(|db| Self {
-            repo: Repository::new(db),
-        })?)
-    }
-
+impl Service {
     pub async fn classify_all_transactions(&self) -> Result<Vec<TransactionUpdate>, StringErr> {
         let ts = self.repo.get_transactions().await?;
         let rs = self.repo.get_rules().await?;
@@ -35,7 +21,7 @@ impl Classifier {
         classify_transactions(ts, rs).await
     }
 
-    pub async fn update_transactions(
+    pub async fn apply_transaction_updates(
         &self,
         updates: Vec<TransactionUpdate>,
     ) -> Result<(), StringErr> {
@@ -74,15 +60,24 @@ fn match_rule(t: &transaction::Model, r: &rule::Model) -> Result<bool, StringErr
 }
 
 fn match_rules(t: &transaction::Model, rs: &[rule::Model]) -> Option<TransactionUpdate> {
-    rs.iter()
-        .find(|r| {
-            match_rule(t, r).unwrap_or_else(|e| {
-                println!("Error matching rule {}: {}", r.id, e);
-                false
-            })
+    let find_f = |r: &&rule::Model| {
+        match_rule(t, r).unwrap_or_else(|e| {
+            println!("Error matching rule {}: {}", r.id, e);
+            false
         })
-        .map(|r| TransactionUpdate {
+    };
+
+    let handle_match = |r: &rule::Model| {
+        if let Some(r2) = &t.category {
+            if r2 == &r.category {
+                return None;
+            }
+        }
+        Some(TransactionUpdate {
             transaction_id: t.id.clone(),
             category_id: r.category.clone(),
         })
+    };
+
+    rs.iter().find(find_f).and_then(handle_match)
 }

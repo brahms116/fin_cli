@@ -1,9 +1,9 @@
-mod classify;
+mod service;
 mod entities;
 mod repository;
 mod string_err;
 
-pub use classify::*;
+pub use service::*;
 use entities::prelude::*;
 use entities::*;
 use sea_orm::entity::prelude::*;
