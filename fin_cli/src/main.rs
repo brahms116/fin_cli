@@ -45,10 +45,11 @@ async fn main() {
             println!("{:?}", rs)
         }
         Command::ClassifyAll => {
-            service
+           let updates = service
                 .classify_all_transactions()
                 .await
                 .expect("Failed to classify transactions");
+            println!("{:#?}", updates);
         }
         Command::ClassifyUncategorised => {
             service

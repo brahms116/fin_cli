@@ -2,7 +2,7 @@ use super::*;
 use chrono::NaiveDate;
 use csv::Reader;
 use serde::Deserialize;
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct INGTransaction {
     #[serde(rename = "Date")]
     pub date: String,
@@ -10,14 +10,18 @@ pub struct INGTransaction {
     #[serde(rename = "Description")]
     pub description: String,
 
+    #[serde(rename = "Credit")]
+    pub credit: Option<f64>,
+
     #[serde(rename = "Debit")]
-    pub amount: f64,
+    pub debit: Option<f64>,
 }
 
 impl From<INGTransaction> for CreateTransactionInput {
     fn from(t: INGTransaction) -> Self {
-        let date = NaiveDate::parse_from_str(&t.date, "%Y/%m/%d").expect("Failed to parse date");
-        let amount_cents = (t.amount * 100.0).floor() as i32;
+        let date = NaiveDate::parse_from_str(&t.date, "%d/%m/%Y").expect("Failed to parse date");
+        let amount = t.credit.unwrap_or(t.debit.unwrap_or(0.0));
+        let amount_cents = (amount * 100.0).floor() as i32;
         CreateTransactionInput {
             date,
             description: t.description,

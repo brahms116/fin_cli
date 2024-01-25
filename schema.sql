@@ -23,3 +23,6 @@ create table if not exists transaction (
   category text references category(id) on delete set null on update cascade,
   date_created timestamp not null default now()
 );
+
+create index if not exists transaction_date_idx on transaction(date);
+create index if not exists transaction_category_idx on transaction(category);

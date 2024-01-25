@@ -9,6 +9,7 @@ pub struct Repository {
     db: DatabaseConnection,
 }
 
+#[derive(Debug)]
 pub struct TransactionUpdate {
     pub transaction_id: String,
     pub category_id: String,
