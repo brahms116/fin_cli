@@ -1,7 +1,9 @@
+mod adapter;
 mod config;
 
 use clap::{Parser, Subcommand, ValueEnum};
 
+use adapter::*;
 use config::*;
 use fin::*;
 
@@ -37,8 +39,10 @@ async fn main() {
         .expect("Failed to create service");
 
     match cli.cmd {
-        Command::Add { path, variant } => {
-            todo!()
+        Command::Add { path, variant: _ } => {
+            let is = get_ing_transactions(&path);
+            let rs = service.create_transactions(is).await;
+            println!("{:?}", rs)
         }
         Command::ClassifyAll => {
             service

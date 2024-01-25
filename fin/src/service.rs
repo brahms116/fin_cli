@@ -2,7 +2,9 @@ mod classify;
 mod create;
 
 use super::*;
-use crate::repository::{CreateTransactionResult, Repository, TransactionUpdate, CreateTransactionModel};
+use crate::repository::{
+    CreateTransactionModel, CreateTransactionResult, Repository, TransactionUpdate,
+};
 use futures::{StreamExt, TryStream, TryStreamExt};
 use regex::{Error as RegexError, Regex};
 

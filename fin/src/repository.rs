@@ -22,6 +22,7 @@ pub struct CreateTransactionModel {
     pub category: Option<String>,
 }
 
+#[derive(Debug)]
 pub enum CreateTransactionResultMessage {
     Success,
     Duplicate,
@@ -43,6 +44,7 @@ impl From<&DbErr> for CreateTransactionResultMessage {
     }
 }
 
+#[derive(Debug)]
 pub struct CreateTransactionResult {
     pub description: String,
     pub date: NaiveDate,
