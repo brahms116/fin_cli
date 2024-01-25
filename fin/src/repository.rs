@@ -1,7 +1,9 @@
-use futures::stream::{FuturesUnordered, Stream, TryStreamExt};
+use chrono::NaiveDate;
+use futures::stream::{FuturesUnordered, Stream, StreamExt, TryStreamExt};
 
 use super::*;
-use sea_orm::{DatabaseConnection, Set};
+use sea_orm::{error::DbErr, DatabaseConnection, Set};
+use sqlx::error::{Error, ErrorKind};
 
 pub struct Repository {
     db: DatabaseConnection,
@@ -10,6 +12,41 @@ pub struct Repository {
 pub struct TransactionUpdate {
     pub transaction_id: String,
     pub category_id: String,
+}
+
+pub struct CreateTransactionModel {
+    pub id: String,
+    pub amount_cents: i32,
+    pub description: String,
+    pub date: NaiveDate,
+    pub category: Option<String>,
+}
+
+pub enum CreateTransactionResultMessage {
+    Success,
+    Duplicate,
+    Error(String),
+}
+
+impl From<&DbErr> for CreateTransactionResultMessage {
+    fn from(e: &DbErr) -> Self {
+        match e {
+            DbErr::Query(RuntimeErr::SqlxError(Error::Database(x))) => {
+                if x.kind() == ErrorKind::UniqueViolation {
+                    CreateTransactionResultMessage::Duplicate
+                } else {
+                    CreateTransactionResultMessage::Error(format!("{:?}", x))
+                }
+            }
+            _ => CreateTransactionResultMessage::Error(format!("{:?}", e)),
+        }
+    }
+}
+
+pub struct CreateTransactionResult {
+    pub description: String,
+    pub date: NaiveDate,
+    pub message: CreateTransactionResultMessage,
 }
 
 impl Repository {
@@ -58,5 +95,37 @@ impl Repository {
         Ok(fut
             .try_for_each_concurrent(10, |_| async { Ok(()) })
             .await?)
+    }
+
+    pub async fn create_transaction(&self, t: CreateTransactionModel) -> CreateTransactionResult {
+        let r = transaction::ActiveModel {
+            id: Set(t.id),
+            amount_cents: Set(t.amount_cents),
+            description: Set(t.description.clone()),
+            date: Set(t.date),
+            category: Set(t.category),
+            ..Default::default()
+        }
+        .insert(&self.db)
+        .await;
+
+        let mes = match r {
+            Ok(_) => CreateTransactionResultMessage::Success,
+            Err(e) => (&e).into(),
+        };
+
+        CreateTransactionResult {
+            description: t.description,
+            date: t.date,
+            message: mes,
+        }
+    }
+
+    pub async fn create_transactions(
+        &self,
+        ts: Vec<CreateTransactionModel>,
+    ) -> Vec<CreateTransactionResult> {
+        let fut: FuturesUnordered<_> = ts.into_iter().map(|t| self.create_transaction(t)).collect();
+        fut.collect().await
     }
 }

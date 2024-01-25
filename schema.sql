@@ -16,7 +16,7 @@ create table if not exists rule (
 );
 
 create table if not exists transaction (
-  id text not null default gen_random_uuid() primary key,
+  id text not null primary key,
   date date not null,
   description text not null,
   amount_cents integer not null,

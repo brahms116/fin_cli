@@ -586,6 +586,7 @@ dependencies = [
  "futures",
  "regex",
  "sea-orm",
+ "sqlx",
  "tokio",
 ]
 
