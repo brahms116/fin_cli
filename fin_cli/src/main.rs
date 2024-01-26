@@ -39,8 +39,11 @@ async fn main() {
         .expect("Failed to create service");
 
     match cli.cmd {
-        Command::Add { path, variant: _ } => {
-            let is = get_ing_transactions(&path);
+        Command::Add { path, variant } => {
+            let is = match variant {
+                Variant::ING => get_ing_transactions(&path),
+                Variant::Bendigo => get_bendigo_transactions(&path),
+            };
             let rs = service.create_transactions(is).await;
             println!("{:#?}", rs)
         }
