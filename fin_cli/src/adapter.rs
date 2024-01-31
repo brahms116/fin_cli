@@ -1,7 +1,7 @@
 use super::*;
 use chrono::NaiveDate;
 use csv::{Reader, ReaderBuilder};
-use serde::Deserialize;
+use serde::{de::DeserializeOwned, Deserialize};
 #[derive(Deserialize, Debug)]
 pub struct INGTransaction {
     #[serde(rename = "Date")]
@@ -30,12 +30,26 @@ impl From<INGTransaction> for CreateTransactionInput {
     }
 }
 
-pub fn get_ing_transactions(path: &str) -> Vec<CreateTransactionInput> {
-    let reader = Reader::from_path(path).expect("Failed to read file");
-    reader
-        .into_deserialize::<INGTransaction>()
-        .map(|result| result.expect("Failed to parse transaction").into())
-        .collect()
+#[derive(Deserialize, Debug)]
+pub struct CustomTransaction {
+    #[serde(rename = "Date")]
+    pub date: String,
+    #[serde(rename = "Description")]
+    pub description: String,
+    #[serde(rename = "Debt")]
+    pub amount: f64,
+}
+
+impl From<CustomTransaction> for CreateTransactionInput {
+    fn from(t: CustomTransaction) -> Self {
+        let date = NaiveDate::parse_from_str(&t.date, "%m/%d/%Y").expect("Failed to parse date");
+        let amount_cents = (t.amount * 100.0).floor() as i32;
+        CreateTransactionInput {
+            date,
+            description: t.description,
+            amount_cents,
+        }
+    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -68,32 +82,13 @@ pub fn get_bendigo_transactions(path: &str) -> Vec<CreateTransactionInput> {
         .collect()
 }
 
-#[derive(Deserialize, Debug)]
-pub struct CustomTransaction {
-    #[serde(rename = "Date")]
-    pub date: String,
-    #[serde(rename = "Description")]
-    pub description: String,
-    #[serde(rename = "Debt")]
-    pub amount: f64,
-}
-
-impl From<CustomTransaction> for CreateTransactionInput {
-    fn from(t: CustomTransaction) -> Self {
-        let date = NaiveDate::parse_from_str(&t.date, "%m/%d/%Y").expect("Failed to parse date");
-        let amount_cents = (t.amount * 100.0).floor() as i32;
-        CreateTransactionInput {
-            date,
-            description: t.description,
-            amount_cents,
-        }
-    }
-}
-
-pub fn get_custom_transactions(path: &str) -> Vec<CreateTransactionInput> {
+pub fn get_transactions<T>(path: &str) -> Vec<CreateTransactionInput>
+where
+    T: DeserializeOwned + Into<CreateTransactionInput>,
+{
     let reader = Reader::from_path(path).expect("Failed to read file");
     reader
-        .into_deserialize::<CustomTransaction>()
+        .into_deserialize::<T>()
         .map(|result| result.expect("Failed to parse transaction").into())
         .collect()
 }
@@ -117,7 +112,7 @@ mod test {
                 amount_cents: -2000,
             },
         ];
-        let actual = get_custom_transactions(path);
+        let actual = get_transactions::<CustomTransaction>(path);
         assert_eq!(expected, actual);
     }
 
@@ -136,7 +131,7 @@ mod test {
                 amount_cents: 3000,
             },
         ];
-        let actual = get_ing_transactions(path);
+        let actual = get_transactions::<INGTransaction>(path);
         assert_eq!(expected, actual);
     }
 

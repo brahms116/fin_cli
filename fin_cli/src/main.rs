@@ -42,9 +42,9 @@ async fn main() {
     match cli.cmd {
         Command::Add { path, variant } => {
             let is = match variant {
-                Variant::ING => get_ing_transactions(&path),
+                Variant::ING => get_transactions::<INGTransaction>(&path),
                 Variant::Bendigo => get_bendigo_transactions(&path),
-                Variant::Custom => get_custom_transactions(&path),
+                Variant::Custom => get_transactions::<CustomTransaction>(&path),
             };
             let rs = service.create_transactions(is).await;
             println!("{:#?}", rs)
