@@ -28,6 +28,7 @@ enum Command {
 enum Variant {
     ING,
     Bendigo,
+    Custom,
 }
 
 #[tokio::main]
@@ -43,6 +44,7 @@ async fn main() {
             let is = match variant {
                 Variant::ING => get_ing_transactions(&path),
                 Variant::Bendigo => get_bendigo_transactions(&path),
+                Variant::Custom => get_custom_transactions(&path),
             };
             let rs = service.create_transactions(is).await;
             println!("{:#?}", rs)

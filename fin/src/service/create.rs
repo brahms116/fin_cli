@@ -2,6 +2,7 @@ use chrono::NaiveDate;
 
 use super::*;
 
+#[derive(Debug, PartialEq)]
 pub struct CreateTransactionInput {
     pub amount_cents: i32,
     pub description: String,
